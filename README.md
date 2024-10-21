@@ -1,9 +1,9 @@
 # PONG
 PONG from 70s ;)
 
-#INSTALL
+# INSTALL
 
-##You need buildessential on your PC.
+## You need buildessential on your PC.
 debian-based:
 ```
 apt-get install build-essential
@@ -16,12 +16,12 @@ arch:
 ```
 pacman -S build-essential
 ```
-##Compile
+## Compile
 ```
 make
 ```
 
-#START
+# START
 
 ```
 ./pong
