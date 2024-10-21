@@ -185,8 +185,36 @@ void settingsMenu(Config& config) {
 }
 
 void showResults() {
+    int ch;
 
+    while (true) {
+        erase();  // Очищаем экран
+
+        std::ifstream file("scores.txt");
+        if (file.is_open()) {
+            std::string line;
+            int i = 0;  // Начинаем с 0, чтобы корректно выводить строки на экране
+            while (std::getline(file, line)) {
+                mvprintw(1 + i, 5, "%s", line.c_str());  // Выводим каждую строку с отступом в 5 символов
+                i++;
+            }
+            file.close();
+
+            mvprintw(i + 2, 5, "Press 'Q' to return to menu.");  // Инструкция для возврата
+            refresh();  // Обновляем экран для отображения
+        } else {
+            mvprintw(1, 5, "Error: Unable to open scores file.");
+            mvprintw(3, 5, "Press 'Q' to return to menu.");
+        }
+
+        // Ожидание нажатия клавиши
+        ch = getch();
+        if (ch == 'q' || ch == 'Q') {
+            break;  // Выходим из цикла и возвращаемся в главное меню
+        }
+    }
 }
+
 
 int showMenu() {
     int choice = 0;
@@ -194,7 +222,7 @@ int showMenu() {
         "Play: Player vs Player",
         "Play: Player vs Computer",
         "Play: Player vs Wall",
-        "Show Results"
+        "Show Results",
         "Settings",
         "Exit"
     };
@@ -204,15 +232,15 @@ int showMenu() {
     while (true) {
         erase();
         mvprintw(1, 1, "PONG - Main Menu:");
-        mvprintw(1, 2, "License GPL, see README.md");
+        mvprintw(2, 1, "License GPL, see README.md");
 
         for (int i = 0; i < num_options; i++) {
             if (i == choice) {
                 attron(A_REVERSE);
-                mvprintw(3 + i, 5, "%s", menu[i]);  // Используем формат "%s"
+                mvprintw(4 + i, 5, "%s", menu[i]);  // Используем формат "%s"
                 attroff(A_REVERSE);
             } else {
-                mvprintw(3 + i, 5, "%s", menu[i]);  // Используем формат "%s"
+                mvprintw(4 + i, 5, "%s", menu[i]);  // Используем формат "%s"
             }
         }
         int input = getch();
@@ -279,13 +307,21 @@ void gameLoop(Config& config, int gameMode) {
 
         // Логика игры против стены
         if (gameMode == 3) {
+            // Если мяч достигает правой границы (игрок пропустил)
             if (ball.x >= config.field_width - 1) {
-                player1Score++;
-                ball.reset(config.field_width / 2, config.field_height / 2);
+                player1Score++;  // Увеличиваем счёт
+                ball.reset(config.field_width / 2, config.field_height / 2);  // Перезапускаем мяч
+                ball.dx = -ball.dx;  // Направляем мяч обратно к игроку
             }
+
+            // Проверка столкновения с ракеткой
+            if (ball.checkPaddleCollision(player1)) {
+                ball.dx = -ball.dx;  // Меняем направление мяча
+            }
+
+            // Если мяч пересекает левую границу (игрок отбил успешно)
             if (ball.x <= 0) {
-                player2Score++;
-                ball.reset(config.field_width / 2, config.field_height / 2);
+                ball.dx = -ball.dx;  // Меняем направление мяча
             }
         }
 
@@ -341,6 +377,7 @@ int main() {
                 break;
             case 3:
                 showResults();
+                break;
             case 4: // Настройки
                 settingsMenu(config);
                 break;
@@ -349,7 +386,6 @@ int main() {
                 break;
         }
     }
-
     // Завершаем ncurses
     endwin();
     return 0;
