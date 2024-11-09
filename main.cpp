@@ -2,9 +2,6 @@
 #include <iostream>     // Стандартная библиотека C++ для работы с вводом и выводом.
 #include <fstream>      // Для работы с файлами (чтение и запись).
 #include <string>       // Для работы со строками.
-#include <cstdlib>      // Для некоторых функций стандартной библиотеки C (например, random).
-#include <ctime>        // Для работы с временем (инициализация случайных чисел).
-
 
 // Структура для хранения настроек игры
 struct Config {
@@ -17,7 +14,7 @@ struct Config {
     std::string name_Player2;
 };
 
-// Функция для загрузки конфигурации из файла config.ini
+// Для загрузки конфигурации из файла config.ini
 Config loadConfig(const std::string& fileName) {
     Config config;
     std::ifstream file(fileName);   // Открытие файла для чтения
