@@ -1,67 +1,71 @@
-#include <ncurses.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstdlib>
-#include <ctime>
+#include <ncurses.h>    // Библиотека для работы с графическим интерфейсом в терминале.
+#include <iostream>     // Стандартная библиотека C++ для работы с вводом и выводом.
+#include <fstream>      // Для работы с файлами (чтение и запись).
+#include <string>       // Для работы со строками.
+#include <cstdlib>      // Для некоторых функций стандартной библиотеки C (например, random).
+#include <ctime>        // Для работы с временем (инициализация случайных чисел).
+
 
 // Структура для хранения настроек игры
 struct Config {
-    float speed;
-    int max_score;
-    int field_width;
-    int field_height;
-    int paddle_height;
+    float speed;         // Скорость игры.
+    int max_score;       // Максимальный счёт, при котором игра завершается.
+    int field_width;     // Ширина игрового поля.
+    int field_height;    // Высота игрового поля.
+    int paddle_height;   // Высота ракетки игрока.
 };
 
 // Функция для загрузки конфигурации из файла config.ini
 Config loadConfig(const std::string& fileName) {
     Config config;
-    std::ifstream file(fileName);
-    if (file.is_open()) {
+    std::ifstream file(fileName);   // Открытие файла для чтения
+    if (file.is_open()) {           // Проверка успешного открытия файла
         std::string line;
-        while (std::getline(file, line)) {
+        while (std::getline(file, line)) {  // Чтение каждой строки из файла
+            // Поиск параметров и запись их значений в соответствующие поля структуры
             if (line.find("speed") != std::string::npos) config.speed = std::stof(line.substr(line.find("=") + 1));
             if (line.find("max_score") != std::string::npos) config.max_score = std::stoi(line.substr(line.find("=") + 1));
             if (line.find("field_width") != std::string::npos) config.field_width = std::stoi(line.substr(line.find("=") + 1));
             if (line.find("field_height") != std::string::npos) config.field_height = std::stoi(line.substr(line.find("=") + 1));
             if (line.find("paddle_height") != std::string::npos) config.paddle_height = std::stoi(line.substr(line.find("=") + 1));
         }
-        file.close();
+        file.close();  // Закрытие файла
     }
-    return config;
+    return config;  // Возвращение структуры с загруженными параметрами
 }
 
 // Функция для сохранения конфигурации
 void saveConfig(const std::string& fileName, Config& config) {
-    std::ofstream file(fileName);
-    if (file.is_open()) {
+    std::ofstream file(fileName);   // Открытие файла для записи
+    if (file.is_open()) {           // Проверка успешного открытия файла
+        // Запись каждого параметра из структуры `config` в файл
         file << "speed = " << config.speed << std::endl;
         file << "max_score = " << config.max_score << std::endl;
         file << "field_width = " << config.field_width << std::endl;
         file << "field_height = " << config.field_height << std::endl;
         file << "paddle_height = " << config.paddle_height << std::endl;
-        file.close();
+        file.close();  // Закрытие файла
     }
 }
+
 
 // Класс для управления ракеткой
 class Paddle {
 public:
-    int x, y, height;
-    Paddle(int x, int y, int height) : x(x), y(y), height(height) {}
-    
+    int x, y, height;  // Позиция и высота ракетки
+    Paddle(int x, int y, int height) : x(x), y(y), height(height) {}  // Конструктор инициализации
+
     void moveUp() {
-        if (y > 1) y--; // Ограничение сверху
+        if (y > 1) y--;  // Перемещает ракетку вверх, если не достигнута граница
     }
 
     void moveDown(int field_height) {
-        if (y + height < field_height - 1) y++; // Ограничение снизу
+        if (y + height < field_height - 1) y++;  // Перемещает ракетку вниз, если не достигнута нижняя граница
     }
 
     void draw() {
         for (int i = 0; i < height; i++) {
-            mvprintw(y + i, x, "|");
+            mvprintw(y + i, x, "|");  // Отрисовка ракетки вертикальной чертой на позиции `x`, `y`
         }
     }
 };
@@ -69,51 +73,56 @@ public:
 // Класс для управления мячом
 class Ball {
 public:
-    int x, y;
-    int dx, dy;
-    Ball(int x, int y) : x(x), y(y), dx(1), dy(1) {}
+    int x, y;     // Позиция мяча
+    int dx, dy;   // Направление мяча
+    Ball(int x, int y) : x(x), y(y), dx(1), dy(1) {}  // Конструктор инициализации
 
     void move() {
-        x += dx;
-        y += dy;
+        x += dx;  // Изменение позиции мяча в направлении `dx`
+        y += dy;  // Изменение позиции мяча в направлении `dy`
     }
 
     void bounce(int field_height) {
         if (y <= 1 || y >= field_height - 2) {
-            dy = -dy; // Отскок от верхней и нижней стенки
+            dy = -dy;  // Меняет направление мяча при столкновении с верхней или нижней границей
         }
     }
 
     void draw() {
-        mvprintw(y, x, "O");
+        mvprintw(y, x, "O");  // Отрисовка мяча на экране символом `O`
     }
 
     bool checkPaddleCollision(Paddle& paddle) {
+        // Проверяет столкновение мяча с ракеткой
         return (x == paddle.x && y >= paddle.y && y < paddle.y + paddle.height);
     }
 
     bool outOfBounds(int field_width) {
-        return x <= 0 || x >= field_width - 1;
+        return x <= 0 || x >= field_width - 1;  // Проверка, находится ли мяч за границей игрового поля
     }
 
     void reset(int startX, int startY) {
-        x = startX;
+        x = startX;  // Сбрасывает позицию мяча в центр
         y = startY;
-        dx = -dx; // Меняем направление после гола
+        dx = -dx;  // Меняет направление мяча
     }
 };
 
+
 // Функция для сохранения результатов в файл scores.txt
-void saveScore(const std::string& playerName, int score) {
-    std::ofstream file("scores.txt", std::ios::app);
-    if (file.is_open()) {
-        file << playerName << " - " << score << std::endl;
-        file.close();
+void saveScore(const std::string& playerName_1, int score_1, const std::string& playerName_2, int score_2) {
+    std::ofstream file("scores.txt", std::ios::app);  // Открываем файл в режиме добавления
+    if (file.is_open()) {  // Проверка успешного открытия
+        file << playerName_1 << " - " << score_1 << playerName_2 << " - " << score_2 << std::endl;  // Запись имени игрока и счёта
+        file.close();  // Закрытие файла
     }
 }
 
+
+// Меню настроек игры: позволяет пользователю изменять параметры игры.
 void settingsMenu(Config& config) {
-    int choice = 0;
+    int choice = 0; // Текущий выбранный параметр меню.
+    // Названия опций настроек.
     const char* options[] = {
         "Change speed",
         "Change max score",
@@ -122,61 +131,66 @@ void settingsMenu(Config& config) {
         "Change paddle height",
         "Save and exit"
     };
-    int num_options = sizeof(options) / sizeof(options[0]);
-    
+    int num_options = sizeof(options) / sizeof(options[0]); // Количество опций.
+
     while (true) {
-        erase();
-        mvprintw(1, 1, "Game settings:");
+        erase(); // Очистка экрана перед перерисовкой.
+        mvprintw(1, 1, "Game settings:"); // Заголовок для меню настроек.
+        
+        // Отображение опций меню, подсвечивание текущей опции.
         for (int i = 0; i < num_options; i++) {
             if (i == choice) {
-                attron(A_REVERSE);
-                mvprintw(3 + i, 5, "%s", options[i]);  // Используем формат "%s"
-                attroff(A_REVERSE);
+                attron(A_REVERSE); // Включить выделение для выбранной опции.
+                mvprintw(3 + i, 5, "%s", options[i]);
+                attroff(A_REVERSE); // Отключить выделение.
             } else {
-                mvprintw(3 + i, 5, "%s", options[i]);  // Используем формат "%s"
+                mvprintw(3 + i, 5, "%s", options[i]);
             }
         }
-        int input = getch();
+
+        int input = getch(); // Ожидание ввода от пользователя.
+
+        // Управление выбором в меню с помощью клавиш.
         switch (input) {
-            case KEY_UP:
+            case KEY_UP: // Переключение вверх.
                 choice = (choice - 1 + num_options) % num_options;
                 break;
-            case KEY_DOWN:
+            case KEY_DOWN: // Переключение вниз.
                 choice = (choice + 1) % num_options;
                 break;
-            case 10: // Enter
+            case 10: // Нажатие Enter для выбора опции.
                 switch (choice) {
-                    case 0: // Change speed
+                    case 0: // Изменение скорости.
                         mvprintw(10, 5, "Enter new speed (e.g., 1.0): ");
-                        echo();
+                        echo(); // Режим отображения пользовательских символов on
                         scanw("%f", &config.speed);
-                        noecho();
+                        noecho(); // off
                         break;
-                    case 1: // Change max score
+                    case 1: // Изменение максимального счета.
                         mvprintw(10, 5, "Enter max score: ");
                         echo();
                         scanw("%d", &config.max_score);
                         noecho();
                         break;
-                    case 2: // Change field width
+                    case 2: // Изменение ширины поля.
                         mvprintw(10, 5, "Enter field width: ");
                         echo();
                         scanw("%d", &config.field_width);
                         noecho();
                         break;
-                    case 3: // Change field height
+                    case 3: // Изменение высоты поля.
                         mvprintw(10, 5, "Enter field height: ");
                         echo();
                         scanw("%d", &config.field_height);
                         noecho();
                         break;
-                    case 4: // Change paddle height
+                    case 4: // Изменение высоты ракетки.
                         mvprintw(10, 5, "Enter paddle height: ");
                         echo();
                         scanw("%d", &config.paddle_height);
                         noecho();
                         break;
-                    case 5: // Save and exit
+                    case 5: // Сохранение настроек и выход из меню.
                         saveConfig("config.ini", config);
                         return;
                 }
@@ -184,38 +198,38 @@ void settingsMenu(Config& config) {
     }
 }
 
+// Функция отображения результатов, сохраненных в файле.
 void showResults() {
     int ch;
-
     while (true) {
-        erase();  // Очищаем экран
+        erase(); // Очистка экрана перед перерисовкой.
 
         std::ifstream file("scores.txt");
         if (file.is_open()) {
             std::string line;
-            int i = 0;  // Начинаем с 0, чтобы корректно выводить строки на экране
+            int i = 0;
             while (std::getline(file, line)) {
-                mvprintw(1 + i, 5, "%s", line.c_str());  // Выводим каждую строку с отступом в 5 символов
+                mvprintw(1 + i, 5, "%s", line.c_str()); // Показ каждой строки результата.
                 i++;
             }
             file.close();
 
-            mvprintw(i + 2, 5, "Press 'Q' to return to menu.");  // Инструкция для возврата
-            refresh();  // Обновляем экран для отображения
+            mvprintw(i + 2, 5, "Press 'Q' to return to menu."); // Инструкция для возврата.
+            refresh(); // Обновление экрана для отображения текста.
         } else {
             mvprintw(1, 5, "Error: Unable to open scores file.");
             mvprintw(3, 5, "Press 'Q' to return to menu.");
         }
 
-        // Ожидание нажатия клавиши
-        ch = getch();
+        // Ожидание ввода для выхода из меню.
+        ch = getch(); // Ввод с клавиатуры
         if (ch == 'q' || ch == 'Q') {
-            break;  // Выходим из цикла и возвращаемся в главное меню
+            break;
         }
     }
 }
 
-
+// Главное меню игры, позволяющее выбрать режим игры и настройки.
 int showMenu() {
     int choice = 0;
     const char *menu[] = {
@@ -226,7 +240,6 @@ int showMenu() {
         "Settings",
         "Exit"
     };
-
     int num_options = sizeof(menu) / sizeof(menu[0]);
 
     while (true) {
@@ -234,15 +247,17 @@ int showMenu() {
         mvprintw(1, 1, "PONG - Main Menu:");
         mvprintw(2, 1, "License GPL, see README.md");
 
+        // Отображение опций меню, выделение выбранного пункта.
         for (int i = 0; i < num_options; i++) {
             if (i == choice) {
                 attron(A_REVERSE);
-                mvprintw(4 + i, 5, "%s", menu[i]);  // Используем формат "%s"
+                mvprintw(4 + i, 5, "%s", menu[i]);
                 attroff(A_REVERSE);
             } else {
-                mvprintw(4 + i, 5, "%s", menu[i]);  // Используем формат "%s"
+                mvprintw(4 + i, 5, "%s", menu[i]);
             }
         }
+
         int input = getch();
         switch (input) {
             case KEY_UP:
@@ -257,8 +272,7 @@ int showMenu() {
     }
 }
 
-
-// Основная функция игры
+// Основной игровой цикл, выполняющий логику игры и обработку ввода.
 void gameLoop(Config& config, int gameMode) {
     int player1Score = 0, player2Score = 0;
 
@@ -267,20 +281,19 @@ void gameLoop(Config& config, int gameMode) {
     Ball ball(config.field_width / 2, config.field_height / 2);
 
     bool isRunning = true;
-    nodelay(stdscr, TRUE);  // Включаем неблокирующий режим для чтения клавиш
-    timeout(100 / config.speed); // Скорость игры
-    
+    nodelay(stdscr, TRUE);  // Включение неблокирующего режима.
+    timeout(100 / config.speed); // Установка скорости игры.
+
     while (isRunning) {
-        // Очищаем экран для перерисовки
-        erase();
-        
-        // Отрисовка верхней и нижней границы поля
+        erase(); // Очистка экрана.
+
+        // Рисование границ поля.
         for (int i = 0; i < config.field_width; i++) {
             mvprintw(0, i, "-");
             mvprintw(config.field_height - 1, i, "-");
         }
 
-        // Отрисовка объектов: мяч, ракетки, счет
+        // Обновление движения мяча и игроков.
         ball.move();
         ball.bounce(config.field_height);
         player1.draw();
@@ -289,104 +302,92 @@ void gameLoop(Config& config, int gameMode) {
 
         mvprintw(1, config.field_width / 2 - 5, "Score: %d | %d", player1Score, player2Score);
 
-        // Управление игроками
         int ch = getch();
         switch (ch) {
             case 'w': player1.moveUp(); break;
             case 's': player1.moveDown(config.field_height); break;
             case KEY_UP: player2.moveUp(); break;
             case KEY_DOWN: player2.moveDown(config.field_height); break;
-            case 'q': isRunning = false; break; // Выход из игры
+            case 'q': isRunning = false; break;
         }
 
-        // Логика компьютера в режиме "Игрок против компьютера"
+        // Логика для режима игрока против компьютера.
         if (gameMode == 2) {
             if (ball.y < player2.y) player2.moveUp();
             if (ball.y > player2.y + player2.height) player2.moveDown(config.field_height);
         }
 
-        // Логика игры против стены
+        // Логика для игры против стены.
         if (gameMode == 3) {
-            // Если мяч достигает правой границы (игрок пропустил)
             if (ball.x >= config.field_width - 1) {
-                player1Score++;  // Увеличиваем счёт
-                ball.reset(config.field_width / 2, config.field_height / 2);  // Перезапускаем мяч
-                ball.dx = -ball.dx;  // Направляем мяч обратно к игроку
+                player1Score++;
+                ball.reset(config.field_width / 2, config.field_height / 2);
+                ball.dx = -ball.dx;
             }
-
-            // Проверка столкновения с ракеткой
             if (ball.checkPaddleCollision(player1)) {
-                ball.dx = -ball.dx;  // Меняем направление мяча
+                ball.dx = -ball.dx;
             }
-
-            // Если мяч пересекает левую границу (игрок отбил успешно)
             if (ball.x <= 0) {
-                ball.dx = -ball.dx;  // Меняем направление мяча
+                ball.dx = -ball.dx;
             }
         }
 
-        // Проверка столкновения с ракетками
+        // Проверка на столкновение с ракетками.
         if (ball.checkPaddleCollision(player1) || ball.checkPaddleCollision(player2)) {
-            ball.dx = -ball.dx; // Меняем направление мяча
+            ball.dx = -ball.dx;
         }
 
-        // Проверка на голы
+        // Проверка на голы.
         if (ball.outOfBounds(config.field_width) && gameMode != 3) {
             if (ball.x <= 0) player2Score++;
             if (ball.x >= config.field_width - 1) player1Score++;
-
-            ball.reset(config.field_width / 2, config.field_height / 2); // Перезапуск мяча после гола
+            ball.reset(config.field_width / 2, config.field_height / 2);
         }
 
-        // Проверка на конец игры
+        // Проверка на конец игры.
         if (player1Score >= config.max_score || player2Score >= config.max_score) {
             isRunning = false;
         }
 
-        refresh(); // Обновляем экран
+        refresh();
     }
 
-    // Сохранение результата в таблицу рекордов
-    saveScore("Player1", player1Score);
-    saveScore("Player2", player2Score);
+    saveScore("Player1", player1Score, "Player2", player2Score);
 }
 
+// Основная функция, инициализирующая ncurses и запускающая главное меню.
 int main() {
-    // Инициализация ncurses
     initscr();
     noecho();
     curs_set(FALSE);
     keypad(stdscr, TRUE);
 
-    // Загрузка конфигурации
     Config config = loadConfig("config.ini");
 
-    // Главное меню
     bool isRunning = true;
     while (isRunning) {
         int choice = showMenu();
         switch (choice) {
-            case 0: // Играть: Игрок против игрока
+            case 0:
                 gameLoop(config, 1);
                 break;
-            case 1: // Играть: Игрок против компьютера
+            case 1:
                 gameLoop(config, 2);
                 break;
-            case 2: // Играть: Игрок против стены
+            case 2:
                 gameLoop(config, 3);
                 break;
             case 3:
                 showResults();
                 break;
-            case 4: // Настройки
+            case 4:
                 settingsMenu(config);
                 break;
-            case 5: // Выход
+            case 5:
                 isRunning = false;
                 break;
         }
     }
-    // Завершаем ncurses
     endwin();
     return 0;
 }
