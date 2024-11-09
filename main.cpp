@@ -13,6 +13,8 @@ struct Config {
     int field_width;     // Ширина игрового поля.
     int field_height;    // Высота игрового поля.
     int paddle_height;   // Высота ракетки игрока.
+    std::string name_Player1;
+    std::string name_Player2;
 };
 
 // Функция для загрузки конфигурации из файла config.ini
@@ -28,6 +30,9 @@ Config loadConfig(const std::string& fileName) {
             if (line.find("field_width") != std::string::npos) config.field_width = std::stoi(line.substr(line.find("=") + 1));
             if (line.find("field_height") != std::string::npos) config.field_height = std::stoi(line.substr(line.find("=") + 1));
             if (line.find("paddle_height") != std::string::npos) config.paddle_height = std::stoi(line.substr(line.find("=") + 1));
+            if (line.find("name_Player1") != std::string::npos) config.name_Player1 = line.substr(line.find("=") + 1);
+            if (line.find("name_Player2") != std::string::npos) config.name_Player2 = line.substr(line.find("=") + 1);
+
         }
         file.close();  // Закрытие файла
     }
@@ -48,12 +53,11 @@ void saveConfig(const std::string& fileName, Config& config) {
     }
 }
 
-
 // Класс для управления ракеткой
 class Paddle {
 public:
     int x, y, height;  // Позиция и высота ракетки
-    Paddle(int x, int y, int height) : x(x), y(y), height(height) {}  // Конструктор инициализации
+    Paddle(int x, int y, int height) : x(x), y(y), height(height) {}  // Конструктор инициализации (height в скобках, чтобы избежать конфликта инициализации)
 
     void moveUp() {
         if (y > 1) y--;  // Перемещает ракетку вверх, если не достигнута граница
@@ -113,10 +117,11 @@ public:
 void saveScore(const std::string& playerName_1, int score_1, const std::string& playerName_2, int score_2) {
     std::ofstream file("scores.txt", std::ios::app);  // Открываем файл в режиме добавления
     if (file.is_open()) {  // Проверка успешного открытия
-        file << playerName_1 << " - " << score_1 << playerName_2 << " - " << score_2 << std::endl;  // Запись имени игрока и счёта
+        file << playerName_1 << " - " << score_1 << " " << playerName_2 << " - " << score_2 << std::endl;  // Запись имени игрока и счёта
         file.close();  // Закрытие файла
     }
 }
+
 
 
 // Меню настроек игры: позволяет пользователю изменять параметры игры.
@@ -129,6 +134,8 @@ void settingsMenu(Config& config) {
         "Change field width",
         "Change field height",
         "Change paddle height",
+        "Change name Player 1",
+        "Change name Player 2",
         "Save and exit"
     };
     int num_options = sizeof(options) / sizeof(options[0]); // Количество опций.
@@ -149,7 +156,7 @@ void settingsMenu(Config& config) {
         }
 
         int input = getch(); // Ожидание ввода от пользователя.
-
+        char buffer[50];
         // Управление выбором в меню с помощью клавиш.
         switch (input) {
             case KEY_UP: // Переключение вверх.
@@ -190,7 +197,21 @@ void settingsMenu(Config& config) {
                         scanw("%d", &config.paddle_height);
                         noecho();
                         break;
-                    case 5: // Сохранение настроек и выход из меню.
+                    case 5: // Изменение игрока 1.
+                        mvprintw(10, 5, "Enter name: ");
+                        echo();
+                        getstr(buffer);
+                        config.name_Player1 = buffer;
+                        noecho();
+                        break;
+                    case 6: // Изменение высоты ракетки.
+                        mvprintw(10, 5, "Enter name: ");
+                        echo();
+                        getstr(buffer);
+                        config.name_Player2 = buffer;
+                        noecho();
+                        break;
+                    case 7: // Сохранение настроек и выход из меню.
                         saveConfig("config.ini", config);
                         return;
                 }
@@ -351,16 +372,20 @@ void gameLoop(Config& config, int gameMode) {
 
         refresh();
     }
-
-    saveScore("Player1", player1Score, "Player2", player2Score);
+    if (gameMode == 1) {
+        saveScore(config.name_Player1, player1Score, config.name_Player2, player2Score);
+    }
+    if (gameMode == 2) {
+        saveScore(config.name_Player1, player1Score, "Computer", player2Score);
+    }
 }
 
 // Основная функция, инициализирующая ncurses и запускающая главное меню.
 int main() {
-    initscr();
-    noecho();
-    curs_set(FALSE);
-    keypad(stdscr, TRUE);
+    initscr(); // инициализация
+    noecho(); // Символы минус
+    curs_set(FALSE); // Курсор минус
+    keypad(stdscr, TRUE); // Поддержка функциональных клавиш
 
     Config config = loadConfig("config.ini");
 
