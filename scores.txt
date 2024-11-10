@@ -1,3 +1,10 @@
-
-Player1 - 10Computer - 8
-h1dyg0at - 10 !h1dyg0at - 2
+ h1dyg0at - 0   Player2 - 10
+ h1dyg0at - 10 Computer - 4
+  h1dyg0at - 5 Example - 4
+  h1dyg0at - 5 Example - 4
+  h1dyg0at - 5 Example - 4
+  h1dyg0at - 5 Example - 4
+  h1dyg0at - 5 Computer - 4
+  h1dyg0at - 5 Computer - 4
+   h1dyg0at - 7  Example - 4
+   h1dyg0at - 7  Example - 6

@@ -14,7 +14,7 @@ struct Config {
     std::string name_Player2;
 };
 
-// Для загрузки конфигурации из файла config.ini
+// Функция для загрузки конфигурации из файла config.ini
 Config loadConfig(const std::string& fileName) {
     Config config;
     std::ifstream file(fileName);   // Открытие файла для чтения
@@ -46,6 +46,8 @@ void saveConfig(const std::string& fileName, Config& config) {
         file << "field_width = " << config.field_width << std::endl;
         file << "field_height = " << config.field_height << std::endl;
         file << "paddle_height = " << config.paddle_height << std::endl;
+        file << "name_Player1 = " << config.name_Player1 << std::endl;
+        file << "name_Player2 = " << config.name_Player2 << std::endl;
         file.close();  // Закрытие файла
     }
 }
