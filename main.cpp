@@ -2,6 +2,7 @@
 #include <iostream>     // Стандартная библиотека C++ для работы с вводом и выводом.
 #include <fstream>      // Для работы с файлами (чтение и запись).
 #include <string>       // Для работы со строками.
+#include <cstring> 
 
 // Структура для хранения настроек игры
 struct Config {
@@ -13,6 +14,18 @@ struct Config {
     std::string name_Player1;
     std::string name_Player2;
 };
+
+void initColors() {
+    start_color();
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);  // Default text color
+    init_pair(2, COLOR_YELLOW, COLOR_BLACK); // Highlighted text color
+    init_pair(3, COLOR_GREEN, COLOR_BLACK);  // Border color
+}
+
+void centeredPrint(int y, const char *text, int width) {
+    int x = (width - strlen(text)) / 2;
+    mvprintw(y, x, "%s", text);
+}
 
 // Функция для загрузки конфигурации из файла config.ini
 Config loadConfig(const std::string& fileName) {
@@ -53,10 +66,27 @@ void saveConfig(const std::string& fileName, Config& config) {
 }
 
 // Класс для управления ракеткой
+// Класс для управления ракеткой
 class Paddle {
-public:
+private:
     int x, y, height;  // Позиция и высота ракетки
-    Paddle(int x, int y, int height) : x(x), y(y), height(height) {}  // Конструктор инициализации (height в скобках, чтобы избежать конфликта инициализации)
+
+public:
+    Paddle(int x, int y, int height) : x(x), y(y), height(height) {}
+
+    // Методы доступа к полям
+    int getX() const { return x; }
+    int getY() const { return y; }
+    int getHeight() const { return height; }
+
+    // Методы установки значений полей
+    void setX(int newX) { x = newX; }
+    void setY(int newY) { y = newY; }
+    void setHeight(int newHeight) { height = newHeight; }
+
+    // Методы изменения значений полей
+    void addX(int dx) { x += dx; }
+    void addY(int dy) { y += dy; }
 
     void moveUp() {
         if (y > 1) y--;  // Перемещает ракетку вверх, если не достигнута граница
@@ -66,7 +96,7 @@ public:
         if (y + height < field_height - 1) y++;  // Перемещает ракетку вниз, если не достигнута нижняя граница
     }
 
-    void draw() {
+    void draw() const {
         for (int i = 0; i < height; i++) {
             mvprintw(y + i, x, "|");  // Отрисовка ракетки вертикальной чертой на позиции `x`, `y`
         }
@@ -75,10 +105,33 @@ public:
 
 // Класс для управления мячом
 class Ball {
-public:
+private:
     int x, y;     // Позиция мяча
     int dx, dy;   // Направление мяча
-    Ball(int x, int y) : x(x), y(y), dx(1), dy(1) {}  // Конструктор инициализации
+
+public:
+    Ball(int x, int y) : x(x), y(y), dx(1), dy(1) {}
+
+    int getX() const { return x; }
+    int getY() const { return y; }
+    int getDX() const { return dx; }
+    int getDY() const { return dy; }
+
+    void setX(int newX) { x = newX; }
+    void setY(int newY) { y = newY; }
+    void setDX(int newDX) { dx = newDX; }
+    void setDY(int newDY) { dy = newDY; }
+
+    void addX(int dxIncrement) { x += dxIncrement; }
+    void addY(int dyIncrement) { y += dyIncrement; }
+
+    void invertXDirection() {
+        dx = -dx;
+    }
+
+    void invertYDirection() {
+        dy = -dy;
+    }
 
     void move() {
         x += dx;  // Изменение позиции мяча в направлении `dx`
@@ -91,16 +144,15 @@ public:
         }
     }
 
-    void draw() {
+    void draw() const {
         mvprintw(y, x, "O");  // Отрисовка мяча на экране символом `O`
     }
 
-    bool checkPaddleCollision(Paddle& paddle) {
-        // Проверяет столкновение мяча с ракеткой
-        return (x == paddle.x && y >= paddle.y && y < paddle.y + paddle.height);
+    bool checkPaddleCollision(const Paddle& paddle) const {
+        return (x == paddle.getX() && y >= paddle.getY() && y < paddle.getY() + paddle.getHeight());
     }
 
-    bool outOfBounds(int field_width) {
+    bool outOfBounds(int field_width) const {
         return x <= 0 || x >= field_width - 1;  // Проверка, находится ли мяч за границей игрового поля
     }
 
@@ -110,6 +162,7 @@ public:
         dx = -dx;  // Меняет направление мяча
     }
 };
+
 
 
 // Функция для сохранения результатов в файл scores.txt
@@ -251,6 +304,7 @@ void showResults() {
 
 // Главное меню игры, позволяющее выбрать режим игры и настройки.
 int showMenu() {
+    initColors();
     int choice = 0;
     const char *menu[] = {
         "Play: Player vs Player",
@@ -261,20 +315,24 @@ int showMenu() {
         "Exit"
     };
     int num_options = sizeof(menu) / sizeof(menu[0]);
+    int max_width = COLS;
 
     while (true) {
         erase();
-        mvprintw(1, 1, "PONG - Main Menu:");
-        mvprintw(2, 1, "License GPL, see README.md");
+        attron(COLOR_PAIR(1));
+        centeredPrint(1, "PONG - Main Menu", max_width);
+        centeredPrint(2, "License GPL, see README.md", max_width);
+        attroff(COLOR_PAIR(1));
 
-        // Отображение опций меню, выделение выбранного пункта.
         for (int i = 0; i < num_options; i++) {
             if (i == choice) {
-                attron(A_REVERSE);
-                mvprintw(4 + i, 5, "%s", menu[i]);
-                attroff(A_REVERSE);
+                attron(A_REVERSE | COLOR_PAIR(2));
+                centeredPrint(4 + i, menu[i], max_width);
+                attroff(A_REVERSE | COLOR_PAIR(2));
             } else {
-                mvprintw(4 + i, 5, "%s", menu[i]);
+                attron(COLOR_PAIR(1));
+                centeredPrint(4 + i, menu[i], max_width);
+                attroff(COLOR_PAIR(1));
             }
         }
 
@@ -292,12 +350,14 @@ int showMenu() {
     }
 }
 
-// Основной игровой цикл, выполняющий логику игры и обработку ввода.
+
 void gameLoop(Config& config, int gameMode) {
     int player1Score = 0, player2Score = 0;
 
+    // Инициализация объектов Paddle и Ball с новыми аргументами, если они изменились
     Paddle player1(1, config.field_height / 2 - config.paddle_height / 2, config.paddle_height);
     Paddle player2(config.field_width - 2, config.field_height / 2 - config.paddle_height / 2, config.paddle_height);
+    
     Ball ball(config.field_width / 2, config.field_height / 2);
 
     bool isRunning = true;
@@ -312,15 +372,31 @@ void gameLoop(Config& config, int gameMode) {
             mvprintw(0, i, "-");
             mvprintw(config.field_height - 1, i, "-");
         }
+        if (gameMode == 3) {
+            for (int i = 1; i < config.field_height - 1; i++) {
+                mvprintw(i, 1, "|");
+            }
+        }
 
-        // Обновление движения мяча и игроков.
+        // Обновление позиции и проверка столкновений мяча
         ball.move();
-        ball.bounce(config.field_height);
+        ball.bounce(config.field_height);  // Удар о стены сверху и снизу
         player1.draw();
         player2.draw();
         ball.draw();
 
+        // Отображение счёта
         mvprintw(1, config.field_width / 2 - 5, "Score: %d | %d", player1Score, player2Score);
+
+        // Отображение имени игрока 1
+        mvprintw(2, 0, "%s", config.name_Player1.c_str());
+
+        // Логика для отображения имени игрока 2 или "Computer" в зависимости от режима
+        if (gameMode == 1) {
+            mvprintw(2, config.field_width - size(config.name_Player2)-4, "%s", config.name_Player2.c_str());
+        } else if (gameMode == 2) {
+            mvprintw(2, config.field_width - 12, "Computer");
+        }
 
         int ch = getch();
         switch (ch) {
@@ -331,46 +407,48 @@ void gameLoop(Config& config, int gameMode) {
             case 'q': isRunning = false; break;
         }
 
-        // Логика для режима игрока против компьютера.
+        // Логика движения компьютера в режиме игрока против компьютера
         if (gameMode == 2) {
-            if (ball.y < player2.y) player2.moveUp();
-            if (ball.y > player2.y + player2.height) player2.moveDown(config.field_height);
+            if (ball.getY() < player2.getY()) player2.moveUp();
+            if (ball.getY() > player2.getY() + player2.getHeight()) player2.moveDown(config.field_height);
         }
 
-        // Логика для игры против стены.
+        // Логика игры против стены
         if (gameMode == 3) {
-            if (ball.x >= config.field_width - 1) {
+            if (ball.getX() >= config.field_width - 1) {
                 player1Score++;
                 ball.reset(config.field_width / 2, config.field_height / 2);
-                ball.dx = -ball.dx;
+                ball.invertXDirection();
             }
             if (ball.checkPaddleCollision(player1)) {
-                ball.dx = -ball.dx;
+                ball.invertXDirection();
             }
-            if (ball.x <= 0) {
-                ball.dx = -ball.dx;
+            if (ball.getX() <= 2) {
+                ball.invertXDirection();
             }
         }
 
-        // Проверка на столкновение с ракетками.
+        // Проверка на столкновение с ракетками в режиме двух игроков
         if (ball.checkPaddleCollision(player1) || ball.checkPaddleCollision(player2)) {
-            ball.dx = -ball.dx;
+            ball.invertXDirection();
         }
 
-        // Проверка на голы.
+        // Проверка на выход мяча за границу поля и добавление очков
         if (ball.outOfBounds(config.field_width) && gameMode != 3) {
-            if (ball.x <= 0) player2Score++;
-            if (ball.x >= config.field_width - 1) player1Score++;
+            if (ball.getX() <= 0) player2Score++;
+            if (ball.getX() >= config.field_width - 1) player1Score++;
             ball.reset(config.field_width / 2, config.field_height / 2);
         }
 
-        // Проверка на конец игры.
+        // Проверка на завершение игры
         if (player1Score >= config.max_score || player2Score >= config.max_score) {
             isRunning = false;
         }
 
-        refresh();
+        refresh();  // Обновление экрана
     }
+    
+    // Сохранение счёта по завершении игры
     if (gameMode == 1) {
         saveScore(config.name_Player1, player1Score, config.name_Player2, player2Score);
     }
@@ -378,6 +456,7 @@ void gameLoop(Config& config, int gameMode) {
         saveScore(config.name_Player1, player1Score, "Computer", player2Score);
     }
 }
+
 
 // Основная функция, инициализирующая ncurses и запускающая главное меню.
 int main() {
